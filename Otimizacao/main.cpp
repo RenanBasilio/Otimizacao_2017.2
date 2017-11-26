@@ -21,13 +21,13 @@ bool isVectorZero(vector<double> vect) {
 	return (vect[1] == 0 && vect[2] == 0 && vect[3] == 0 && vect[4] == 0);
 }
 
-vector<double> multiplicaEscalar(vector<double> vect, double value) {
+vector<double> multiplicaEscalar(vector<double> vect, double scalar) {
 
 	vector<double> returnVector;
 
 	for (int i = 0; i < vect.size(); i++)
 	{
-		double value = value * vect[i];
+		double value = scalar * vect[i];
 		returnVector.push_back(value);
 	}
 
@@ -52,50 +52,64 @@ vector<double> somaVectors(vector<double> vect1, vector<double> vect2) {
 	return returnVector;
 }
 
-double GetPenalidadeGradiente( double x, double rho, double rhoP) {
+double GetPenalidadeGradiente( double x, double rho) {
 	// Todas as penalidades tem a mesma fórmula, então podemos utilizar uma única função que aceita qualquer x!
 
-	double penalidadeIgualdades = -((rhoP) / (std::pow(x, 2))) - ((rhoP) / (std::pow(x, 2) - (2 * x) + 1));
+	double penalidadeIgualdades = 0;
+	if (x < 0) penalidadeIgualdades += 2 * x;
+	if (x > 1) penalidadeIgualdades += (2 * x) - 2;
 
-	double penalidadeDesigualdades = (2 * rho * x) - (6 * rho * std::pow(x, 2)) + (4 * rho * std::pow(x, 3));
+	double penalidadeDesigualdades = (2 * x) - (6 * std::pow(x, 2)) + (4 * std::pow(x, 3));
 
-	return penalidadeIgualdades + penalidadeDesigualdades;
+	return rho * ( penalidadeIgualdades + penalidadeDesigualdades );
 }
 
-vector<double> GetGradienteEmX( vector<double> x , double rho, double rhoP) {
+vector<double> GetGradienteEmX( vector<double> x , double rho) {
 	if ( x.size() != 4 ) {
 		string err = "Received vector of size " + std::to_string(x.size()) + ". Expected 4.";
 		throw std::invalid_argument(err);
 	}
 
-	double grad1 = (-3.0) - (10.0 * x[1]) - (2.0 * x[2]) - (3.0 * x[3]) + GetPenalidadeGradiente(x[1], rho, rhoP);
-	double grad2 = (-10.0 * x[0]) - 10.0 - (10.0 * x[2]) - (10.0 * x[3]) + GetPenalidadeGradiente(x[2], rho, rhoP);
-	double grad3 = (-2.0 * x[0]) - (10.0 * x[1]) - 40.0 - x[3] + GetPenalidadeGradiente(x[3], rho, rhoP);
-	double grad4 = (-3.0 * x[0]) - (10.0 * x[1]) - x[2] - 12.0 + GetPenalidadeGradiente(x[4], rho, rhoP);
+	double grad1 = (-30.0) - (10.0 * x[1]) - (2.0 * x[2]) - (3.0 * x[3]) + GetPenalidadeGradiente(x[0], rho);
+	double grad2 = (-10.0 * x[0]) - 10.0 - (10.0 * x[2]) - (10.0 * x[3]) + GetPenalidadeGradiente(x[1], rho);
+	double grad3 = (-2.0 * x[0]) - (10.0 * x[1]) - 40.0 - x[3] + GetPenalidadeGradiente(x[2], rho);
+	double grad4 = (-3.0 * x[0]) - (10.0 * x[1]) - x[2] - 12.0 + GetPenalidadeGradiente(x[3], rho);
 
 	vector<double> returnVector = { grad1, grad2, grad3, grad4 };
 
 	return returnVector;
 }
 
-vector<double> DescidaGradiente(vector<double> x0, double startRho, double startRhoP, MODE mode) {
+vector<double> DescidaGradiente(vector<double> x0, double startRho, MODE mode) {
 	vector<double> x = x0;
 	double rho = startRho;
-	double rhoP = startRhoP;
-	vector<double> grad = GetGradienteEmX(x, rho, rhoP);
+	vector<double> grad = GetGradienteEmX(x, rho);
 
 	while ( !isVectorZero(grad) )
 	{
 		vector<double> d = multiplicaEscalar(grad, -1);
 		// To-Do: Seção áurea / armijo para achar t
-		double t = 1;
-		x = somaVectors(grad, multiplicaEscalar(d, t));
+		double t = 0.5;
+		
+		x = somaVectors(x, multiplicaEscalar(d, t));
+		rho = 3 * rho;
+
+		grad = GetGradienteEmX(x, rho);
 	}
+
+	return x;
 }
 
 int main(int argc, char* args[]) {
 
-	vector<double> debug = { 0.0, 1.0, 5.0, 0.0 };
+	vector<double> debug = { 1.0, 1.0, 1.0, 1.0 };
+
+	double var1 = GetPenalidadeGradiente(debug[0], 3);
+	double var2 = GetPenalidadeGradiente(debug[1], 3);
+	double var3 = GetPenalidadeGradiente(debug[2], 3);
+	double var4 = GetPenalidadeGradiente(debug[3], 3);
+
+	vector<double> var5 = DescidaGradiente(debug, 1, MODE::ARMIJO);
 
 	cin.get();
 
