@@ -37,6 +37,21 @@ vector<double> multiplicaEscalar(vector<double> vect, double escalar) {
 	return returnVector;
 }
 
+double multiplicaVectors(vector<double> v1, vector<double> v2) {
+	if (v1.size() != v2.size()) {
+		string err = "Received vectors of different sizes: " + std::to_string(v1.size()) + " and "+ std::to_string(v2.size()) + ". Expected equal sizes.";
+		throw std::invalid_argument(err);
+	}
+
+	double mult = 0;
+
+	for (int i = 0; i < v1.size(); i++)	{
+		mult += (v1[i] * v2[i]);
+	}
+
+	return mult;
+}
+
 vector<double> somaVectors(vector<double> vect1, vector<double> vect2) {
 
 	if (vect1.size() != vect2.size()) {
@@ -206,6 +221,23 @@ double secaoAurea(vector<double> x, double rho, vector<double> d, double eps)
 	return result;
 }
 
+double armijo(vector<double> x, double rho, vector<double> d, double gama, double eta) {
+	if (!(eta > 0 && eta < 1)) {
+		string err = "Invalide range for eta " + std::to_string(eta) + ". Expected between 0 and 1.";
+		throw std::invalid_argument(err);
+	}
+	double t = 1;
+	vector<double> x_td, nt_grad;
+	do {
+		for (int i = 0; i < x.size(); i++) {
+			x_td[i] = x[i] + t*d[i];
+		}
+		nt_grad = multiplicaEscalar(GetPenalidadeGradiente(x, rho), eta*t);
+		t = gama * t;
+	} while ((phi(x_td, rho)) > (phi(x, rho) + multiplicaVectors(nt_grad, d)));
+}
+
+
 vector<double> DescidaGradiente(vector<double> x0, double startRho, MODE mode) {
 	vector<double> x = x0;
 	double rho = startRho;
@@ -222,6 +254,7 @@ vector<double> DescidaGradiente(vector<double> x0, double startRho, MODE mode) {
 			t = secaoAurea(x, startRho, d, 0.01);
 			break;
 		case ARMIJO:
+			t = armijo(x, startRho, d, 0.01);
 			break;
 		default:
 			break;
