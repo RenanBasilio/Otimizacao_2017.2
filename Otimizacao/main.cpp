@@ -14,6 +14,7 @@ using std::vector;
 enum MODE { SECAO_AUREA, ARMIJO };
 
 const double GOLDEN_RATIO = (3 - std::sqrt(5)) / 2;
+const double EPSILON = 0.000001;
 
 bool isVectorZero(vector<double> vect) {
 	if (vect.size() != 4) {
@@ -161,45 +162,50 @@ vector<double> GetGradienteEmX( vector<double> x , double rho) {
 	return returnVector;
 }
 
-double secaoAurea(vector<double> x, double rho, vector<double> d, double eps)
-{
-	vector<double> a = x;
-	vector<double> s = somaVectors(x, d);
-	vector<double> b = somaVectors(x, multiplicaEscalar(d, 2));
+double secaoAurea(vector<double> x, double rho, vector<double> d, double eps) {
+	// O método de busca pela seção áurea não funciona pois a função não é unimodal.
+
+	double a = 0;
+	double s = normaVector(d);
+	double b = 2 * s;
 	// Critério de parada:
 	// Da segunda restrição, temos que a região viável é [0, 1] x [0, 1] em cada variável.
 	// Assim, não faz sentido termos intervalo [a, b] maior do que 2, já que esta é a distância
 	// máxima entre quaisquer dois pontos viáveis (norma do vetor [1, 1, 1, 1]).
-	while (phi(b, rho) < phi(s, rho) && normaVector(subtraiVectors(b, a)) > 2) {
+
+	while (phi(x, rho) < phi(somaVectors(x, multiplicaEscalar(d, s)), rho) && (b - a) < 2) {
 		a = s;
 		s = b;
-		b = multiplicaEscalar(b, 2);
+		b = 2 * b;
 	}
 
-	vector<double> u = somaVectors(a, multiplicaEscalar(subtraiVectors(b, a), GOLDEN_RATIO));
-	vector<double> v = somaVectors(a, multiplicaEscalar(subtraiVectors(b, a), (1 - GOLDEN_RATIO)));
+	double u = a + GOLDEN_RATIO * (b - a);
+	double v = a + (1 - GOLDEN_RATIO) * (b - a);
 	int iteracao = 0;
 
 	// Critério de parada:
+	// Tamanho do passo é maior que 2 * eps
 	// 100 iterações
-	while (normaVector(subtraiVectors(b, a)) > eps) {
+	while (b - a > eps && iteracao < 100) {
 		iteracao++;
-		if (phi(u, rho) < phi(v, rho)) {
+		// Se f deslocado u na direção de d é menor que f deslocado v na direção de d
+		if (phi(somaVectors(x, somaVectors(x, multiplicaEscalar(d, u))), rho) < 
+			phi(somaVectors(x, somaVectors(x, multiplicaEscalar(d, v))), rho)){
 			b = v;
 			v = u;
-			u = somaVectors(a, multiplicaEscalar(subtraiVectors(b, a), GOLDEN_RATIO));
+			u = a + GOLDEN_RATIO * (b - a);
 		}
 		else {
 			a = v;
 			u = v;
-			v = somaVectors(a, multiplicaEscalar(subtraiVectors(b, a), (1 - GOLDEN_RATIO)));
+			v = a + (1 - GOLDEN_RATIO) * (b - a);
 		}
 		if (iteracao == 100) cout << "Falha na seção áurea (número máximo de iterações excedido)." << endl;
 	}
 
 	cout << "Método da Seção Áurea convergiu com " << iteracao << " iterações." << endl;
 
-	double result = (normaVector(subtraiVectors(a, u)) + normaVector(subtraiVectors(a, v))) / 2;
+	double result = (u + v) / 2;
 
 	cout << "Tamanho do passo é " << result << endl;
 
@@ -210,16 +216,22 @@ vector<double> DescidaGradiente(vector<double> x0, double startRho, MODE mode) {
 	vector<double> x = x0;
 	double rho = startRho;
 	vector<double> grad = GetGradienteEmX(x, rho);
+	double t = INFINITY;
 
-	while ( !isVectorZero(grad) )
+	int iteracao = 0;
+	// Critério de parada:
+	// O ponto gerado pela função deve ser viável, ou seja, penalidade = 0
+	// Tamanho do passo é menor que epsilon
+	// Mais do que 100 iterações
+	while (!(penalidade(x) == 0 && std::abs(t) >= EPSILON) && iteracao < 100)
 	{
+		iteracao++;
 		vector<double> d = multiplicaEscalar(grad, -1);
 		// To-Do: Seção áurea / armijo para achar t
-		double t;
 		switch (mode)
 		{
 		case SECAO_AUREA:
-			t = secaoAurea(x, startRho, d, 0.01);
+			t = secaoAurea(x, startRho, d, EPSILON);
 			break;
 		case ARMIJO:
 			break;
@@ -228,9 +240,25 @@ vector<double> DescidaGradiente(vector<double> x0, double startRho, MODE mode) {
 		}
 		
 		x = somaVectors(x, multiplicaEscalar(d, t));
-		rho = 3 * rho;
+		//rho = 3 * rho;
 
 		grad = GetGradienteEmX(x, rho);
+	}
+
+	double i = penalidade(x);
+	cout << "Descida por gradiente finalizada com penalidade " << i << endl;
+	if (i > 0) cout << "Não foi possível encontrar ponto viável." << endl;
+	else {
+		cout << "Ponto ótimo encontrado: [ "
+			<< x[0] << ", "
+			<< x[1] << ", "
+			<< x[2] << ", "
+			<< x[3] << "]" << endl;
+		cout << "Gradiente: [ "
+			<< grad[0] << ", "
+			<< grad[1] << ", "
+			<< grad[2] << ", "
+			<< grad[3] << "]" << endl << "Valor de f no ponto: " << phi(x, rho);
 	}
 
 	return x;
@@ -239,8 +267,8 @@ vector<double> DescidaGradiente(vector<double> x0, double startRho, MODE mode) {
 int main(int argc, char* args[]) {
 	setlocale(LC_ALL, "");
 
-	vector<double> debug = { 1.0, 1.0, 1.0, 1.0 };
-	vector<double> debug2 = { 0.0, 0.0, 0.0, 0.0 };
+	vector<double> debug = { 1.0, 5.0, 4.0, 1.0 };
+	vector<double> debug2 = { 0.0, 0.0, 1.0, 1.0 };
 	vector<double> s1 = subtraiVectors(debug, debug2);
 	vector<double> s2 = subtraiVectors(debug2, debug);
 	double n1 = normaVector(subtraiVectors(debug, debug2));
