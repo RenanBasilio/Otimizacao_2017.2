@@ -132,7 +132,7 @@ double phi(vector<double> x, double rho) {
 	return result;
 }
 
-vector<double> GetPenalidadeGradiente( vector<double> x, double rho) {
+vector<double> GetGradientePenalidadeExterior( vector<double> x, double rho) {
 	// Todas as penalidades tem a mesma fórmula, então podemos utilizar uma única função que aceita qualquer x!
 
 	vector<double> penalidadeDesigualdades = { 0, 0, 0, 0 };
@@ -170,7 +170,7 @@ vector<double> GetGradienteEmX( vector<double> x , double rho) {
 	grad[2] = (-2.0 * x[0]) - (10.0 * x[1]) - 40.0 - x[3];
 	grad[3] = (-3.0 * x[0]) - (10.0 * x[1]) - x[2] - 12.0;
 
-	vector<double> penalidade = GetPenalidadeGradiente(x, rho);
+	vector<double> penalidade = GetGradientePenalidadeExterior(x, rho);
 
 	vector<double> returnVector = somaVectors(grad, penalidade);
 
@@ -228,19 +228,28 @@ double secaoAurea(vector<double> x, double rho, vector<double> d, double eps) {
 }
 
 double armijo(vector<double> x, double rho, vector<double> d, double gama, double eta) {
-	if (!(eta > 0 && eta < 1)) {
-		string err = "Invalide range for eta " + std::to_string(eta) + ". Expected between 0 and 1.";
+	if (!(eta > 0 && eta < 1) || !(gama > 0 && gama < 1)) {
+		string err = "Invalide range for eta or gama. Expected between 0 and 1.";
 		throw std::invalid_argument(err);
 	}
-	double t = 1;
-	vector<double> x_td, nt_grad;
+	//Verificando se direção passada é de descida
+	if (multiplicaVectors(GetGradienteEmX(x, rho), d) >= 0) {
+		string err = "Invalid direction. Expected a discent direction.";
+		throw std::invalid_argument(err);
+	}
+	double t = 1; //tam. passo > 0
+    //x_td -> x deslocado pelo passo t na direção d; nt_grad -> gradiente inclinado pelo fator n, proporcional ao tam. passo t
+	vector<double> x_td, nt_grad; 
 	do {
-		for (int i = 0; i < x.size(); i++) {
+		for (int i = 0; i < x.size(); i++)
 			x_td[i] = x[i] + t*d[i];
-		}
-		nt_grad = multiplicaEscalar(GetPenalidadeGradiente(x, rho), eta*t);
+		nt_grad = multiplicaEscalar(GetGradienteEmX(x, rho), eta*t);
 		t = gama * t;
 	} while ((phi(x_td, rho)) > (phi(x, rho) + multiplicaVectors(nt_grad, d)));
+	
+	cout << "Por Armijo, tamanho do passo é " << t << endl;
+
+	return t;
 }
 
 
@@ -266,7 +275,7 @@ vector<double> DescidaGradiente(vector<double> x0, double startRho, MODE mode) {
 			t = secaoAurea(x, startRho, d, EPSILON);
 			break;
 		case ARMIJO:
-			t = armijo(x, startRho, d, 0.01);
+			t = armijo(x, startRho, d, 0.8, 0.25);
 			break;
 		default:
 			break;
@@ -291,7 +300,7 @@ vector<double> DescidaGradiente(vector<double> x0, double startRho, MODE mode) {
 			<< grad[0] << ", "
 			<< grad[1] << ", "
 			<< grad[2] << ", "
-			<< grad[3] << "]" << endl << "Valor de f no ponto: " << phi(x, rho);
+			<< grad[3] << "]" << endl << "Valor de f no ponto: " << phi(x, rho) << endl;
 	}
 
 	return x;
@@ -312,6 +321,11 @@ int main(int argc, char* args[]) {
 
 	vector<double> var5 = DescidaGradiente(debug2, 1, MODE::SECAO_AUREA);
 	double result = phi(var5, 1);
+	cout << result << endl;
+
+	var5 = DescidaGradiente(debug2, 1, MODE::ARMIJO);
+	result = phi(var5, 1);
+	cout << result << endl;
 
 	cin.get();
 
