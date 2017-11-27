@@ -128,12 +128,12 @@ vector<double> GetPenalidadeGradiente( vector<double> x, double rho) {
 		if (x[i] > 1) penalidadeDesigualdades[i] += (2 * x[i]) - 2;
 		penalidadeIgualdades[i] += (2 * x[i]) - (6 * std::pow(x[i], 2)) + (4 * std::pow(x[i], 3));
 	}
-	double i = ((33 * x[0]) + (14 * x[1]) + (47 * x[2]) + (11 * x[3]) - 59);
-	if (((33 * x[0]) + (14 * x[1]) + (47 * x[2]) + (11 * x[3]) - 59) > 0) {
-		penalidadeDesigualdades[0] = 66 * ((33 * x[0]) + (14 * x[1]) + (47 * x[2]) + (11 * x[3]) - 59);
-		penalidadeDesigualdades[1] = 28 * ((33 * x[0]) + (14 * x[1]) + (47 * x[2]) + (11 * x[3]) - 59);
-		penalidadeDesigualdades[2] = 94 * ((33 * x[0]) + (14 * x[1]) + (47 * x[2]) + (11 * x[3]) - 59);
-		penalidadeDesigualdades[3] = 22 * ((33 * x[0]) + (14 * x[1]) + (47 * x[2]) + (11 * x[3]) - 59);
+	double g1 = (33 * x[0]) + (14 * x[1]) + (47 * x[2]) + (11 * x[3]) - 59;
+	if (g1 > 0) {
+		penalidadeDesigualdades[0] += 66 * g1;
+		penalidadeDesigualdades[1] += 28 * g1;
+		penalidadeDesigualdades[2] += 94 * g1;
+		penalidadeDesigualdades[3] += 22 * g1;
 	}
 
 	vector<double> result = multiplicaEscalar(somaVectors(penalidadeIgualdades, penalidadeDesigualdades), rho);
