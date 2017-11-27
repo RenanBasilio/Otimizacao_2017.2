@@ -104,14 +104,14 @@ double penalidade(vector<double> x) {
 	return result;
 }
 
-double f(vector<double> x) {
+double phi(vector<double> x, double rho) {
 	double result =
 		(-30.0 * x[0]) + (-10.0 * x[0] * x[1]) + (-2.0 * x[0] * x[2]) + (-3.0 * x[0] * x[3]) +
 		(-10.0 * x[1]) + (-10.0 * x[1] * x[2]) + (-10.0 * x[1] * x[3]) +
 		(-40.0 * x[2]) + (-1.0 * x[2] * x[3]) +
 		(-12.0 * x[3]);
 
-	result += penalidade(x);
+	result += rho * penalidade(x);
 
 	return result;
 }
@@ -161,7 +161,7 @@ vector<double> GetGradienteEmX( vector<double> x , double rho) {
 	return returnVector;
 }
 
-double secaoAurea(vector<double> x, vector<double> d, double eps)
+double secaoAurea(vector<double> x, double rho, vector<double> d, double eps)
 {
 	vector<double> a = x;
 	vector<double> s = somaVectors(x, d);
@@ -170,7 +170,7 @@ double secaoAurea(vector<double> x, vector<double> d, double eps)
 	// Da segunda restrição, temos que a região viável é [0, 1] x [0, 1] em cada variável.
 	// Assim, não faz sentido termos intervalo [a, b] maior do que 2, já que esta é a distância
 	// máxima entre quaisquer dois pontos viáveis (norma do vetor [1, 1, 1, 1]).
-	while (f(b) < f(s) && normaVector(subtraiVectors(b, a)) > 2) {
+	while (phi(b, rho) < phi(s, rho) && normaVector(subtraiVectors(b, a)) > 2) {
 		a = s;
 		s = b;
 		b = multiplicaEscalar(b, 2);
@@ -184,7 +184,7 @@ double secaoAurea(vector<double> x, vector<double> d, double eps)
 	// 100 iterações
 	while (normaVector(subtraiVectors(b, a)) > eps) {
 		iteracao++;
-		if (f(u) < f(v)) {
+		if (phi(u, rho) < phi(v, rho)) {
 			b = v;
 			v = u;
 			u = somaVectors(a, multiplicaEscalar(subtraiVectors(b, a), GOLDEN_RATIO));
@@ -219,7 +219,7 @@ vector<double> DescidaGradiente(vector<double> x0, double startRho, MODE mode) {
 		switch (mode)
 		{
 		case SECAO_AUREA:
-			t = secaoAurea(x, d, 0.01);
+			t = secaoAurea(x, startRho, d, 0.01);
 			break;
 		case ARMIJO:
 			break;
@@ -247,10 +247,10 @@ int main(int argc, char* args[]) {
 	double n2 = normaVector(subtraiVectors(debug2, debug));
 
 	vector<double> var = GetGradienteEmX(debug, 1);
-	double var2 = f(debug);
+	double var2 = phi(debug, 1);
 
 	vector<double> var5 = DescidaGradiente(debug2, 1, MODE::SECAO_AUREA);
-	double result = f(var5);
+	double result = phi(var5, 1);
 
 	cin.get();
 
