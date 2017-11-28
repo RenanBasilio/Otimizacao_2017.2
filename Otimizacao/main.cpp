@@ -14,7 +14,7 @@ using std::vector;
 enum MODE { SECAO_AUREA, ARMIJO };
 
 const double GOLDEN_RATIO = (3 - std::sqrt(5)) / 2;
-const double EPSILON = 0.000001;
+const double EPSILON = 0.000000000000001;
 
 bool isVectorZero(vector<double> vect) {
 	if (vect.size() != 4) {
@@ -174,7 +174,8 @@ vector<double> GetGradienteEmX( vector<double> x , double rho) {
 
 	vector<double> returnVector = somaVectors(grad, penalidade);
 
-	return returnVector;
+	//return returnVector;
+	return penalidade;
 }
 
 double secaoAurea(vector<double> x, double rho, vector<double> d, double eps) {
@@ -259,10 +260,10 @@ vector<double> DescidaGradiente(vector<double> x0, double rho, MODE mode) {
 	vector<double> grad = GetGradienteEmX(x, rho);
 
 	int k = 0;
+	double t = INFINITY;
 	 
-	while ( !(grad[0] == 0) && (grad[1] == 0) && (grad[2] == 0) && (grad[3] == 0) ) {
+	while ( !(penalidade(x) == 0) && t > EPSILON ) {
 		vector<double> d = multiplicaEscalar(grad, -1); //direção garantidamente de descida 
-		double t;
 		switch (mode)
 		{
 		case SECAO_AUREA:
@@ -274,13 +275,14 @@ vector<double> DescidaGradiente(vector<double> x0, double rho, MODE mode) {
 		default:
 			break;
 		}
-
+	/*
 		if (phi(somaVectors(x, multiplicaEscalar(d, t)), rho) >= phi(x, rho)) {
 			string err = "Invalide step size. The current function image is not smaller than the previous.";
 			throw std::invalid_argument(err);
-		}
+		}*/
 
 		x = somaVectors(x, multiplicaEscalar(d, t));
+		cout << "x = [ " << x[0] << ", " << x[1] << ", " << x[2] << ", " << x[3] << " ]" << endl;
 
 		grad = GetGradienteEmX(x, rho);
 		k++;
@@ -352,12 +354,12 @@ int main(int argc, char* args[]) {
 	vector<double> var = GetGradienteEmX(debug, 1);
 	double var2 = phi(debug, 1);
 
-	vector<double> var5 = DescidaGradiente(debug2, 1, MODE::SECAO_AUREA);
-	double result = phi(var5, 1);
-	cout << result << endl;
+//	vector<double> var5 = DescidaGradiente(debug, 1, MODE::SECAO_AUREA);
+//	double result = phi(var5, 1);
+//	cout << result << endl;
 
-	var5 = DescidaGradiente(debug2, 1, MODE::ARMIJO);
-	result = phi(var5, 1);
+	vector<double> var5 = DescidaGradiente(debug, 1, MODE::ARMIJO);
+	double result = phi(var5, 1);
 	cout << result << endl;
 
 	cin.get();
