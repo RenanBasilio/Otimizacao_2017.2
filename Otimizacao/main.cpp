@@ -289,7 +289,7 @@ vector<double> DescidaGradiente(vector<double> x0, double rho, MODE mode) {
 	}
 
 	cout << "Gradiente convergiu com " << k << " iterações." << endl;
-
+	/*
 	cout << "Ponto mínimo encontrado: [ "
 		<< x[0] << ", "
 		<< x[1] << ", "
@@ -300,7 +300,7 @@ vector<double> DescidaGradiente(vector<double> x0, double rho, MODE mode) {
 		<< grad[1] << ", "
 		<< grad[2] << ", "
 		<< grad[3] << "]" << endl << "Valor de f no ponto: " << phi(x, rho) << endl;
-
+		*/
 	return x;
 }
 
@@ -315,15 +315,15 @@ vector<double> PenalidadeExterior(vector<double> x0, double startRho, MODE mode)
 	// O ponto gerado pela função deve ser viável, ou seja, penalidade = 0
 	// Tamanho da variação em x é menor que epsilon
 	// Mais do que 100 iterações
-	double p = -1;
-	double deltax = 0;
-	while (!(p == 0 && deltax <= EPSILON) && iteracao < 100) {
+	double p = INFINITY;
+	double deltax = INFINITY;
+	while ( p > EPSILON && deltax > EPSILON && iteracao < 100) {
 		x2 = DescidaGradiente(x0, rho, mode);
 		p = penalidade(x2);
 		vector<double> grad = GetGradienteEmX(x2, rho);
 		cout << "Descida por gradiente finalizada com penalidade " << p << endl;
-		if (p > 0) cout << "Não foi possível encontrar ponto viável." << endl;
-		else {
+		//if (p > 0) cout << "Não foi possível encontrar ponto viável." << endl;
+		{
 			cout << "Ponto ótimo encontrado: [ "
 			<< x2[0] << ", "
 			<< x2[1] << ", "
@@ -342,6 +342,7 @@ vector<double> PenalidadeExterior(vector<double> x0, double startRho, MODE mode)
 		iteracao++;
 	}
 
+	cout << "Método de penalidade externa convergiu em " << iteracao << " iterações.";
 	return x2;
 }
 
@@ -364,9 +365,11 @@ int main(int argc, char* args[]) {
 //	double result = phi(var5, 1);
 //	cout << result << endl;
 
-	vector<double> var5 = DescidaGradiente(debug, 1, MODE::ARMIJO);
-	double result = phi(var5, 1);
-	cout << result << endl;
+//	vector<double> var5 = DescidaGradiente(debug, 1, MODE::ARMIJO);
+//	double result = phi(var5, 1);
+//	cout << result << endl;
+
+	vector<double> var5 = PenalidadeExterior(debug, 1, MODE::SECAO_AUREA);
 
 	cin.get();
 
