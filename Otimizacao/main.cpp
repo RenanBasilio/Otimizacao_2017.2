@@ -239,75 +239,108 @@ double armijo(vector<double> x, double rho, vector<double> d, double gama, doubl
 	}
 	double t = 1; //tam. passo > 0
     //x_td -> x deslocado pelo passo t na direção d; nt_grad -> gradiente inclinado pelo fator n, proporcional ao tam. passo t
-	vector<double> x_td, nt_grad; 
+	vector<double> x_td = { 0,0,0,0 };
+	vector<double> 	nt_grad = { 0,0,0,0 };
 	do {
 		for (int i = 0; i < x.size(); i++)
 			x_td[i] = x[i] + t*d[i];
 		nt_grad = multiplicaEscalar(GetGradienteEmX(x, rho), eta*t);
 		t = gama * t;
 	} while ((phi(x_td, rho)) > (phi(x, rho) + multiplicaVectors(nt_grad, d)));
+	// Teorema 21.	Se f é diferenciável, d é direção de descida e n (eta) E ]0,1[ então Armijo encontra t quase-ótimo na vizinhança de x. 
 	
 	cout << "Por Armijo, tamanho do passo é " << t << endl;
 
 	return t;
 }
 
-
-vector<double> DescidaGradiente(vector<double> x0, double startRho, MODE mode) {
+vector<double> DescidaGradiente(vector<double> x0, double rho, MODE mode) {
 	vector<double> x = x0;
-	double rho = startRho;
 	vector<double> grad = GetGradienteEmX(x, rho);
-	double t = INFINITY;
 
-	int iteracao = 0;
-	// Critério de parada:
-	// O ponto gerado pela função deve ser viável, ou seja, penalidade = 0
-	// Tamanho do passo é menor que epsilon
-	// Mais do que 100 iterações
-	while (!(penalidade(x) == 0 && std::abs(t) >= EPSILON) && iteracao < 100)
-	{
-		iteracao++;
-		vector<double> d = multiplicaEscalar(grad, -1);
-		// To-Do: Seção áurea / armijo para achar t
+	int k = 0;
+	 
+	while ( !(grad[0] == 0) && (grad[1] == 0) && (grad[2] == 0) && (grad[3] == 0) ) {
+		vector<double> d = multiplicaEscalar(grad, -1); //direção garantidamente de descida 
+		double t;
 		switch (mode)
 		{
 		case SECAO_AUREA:
-			t = secaoAurea(x, startRho, d, EPSILON);
+			t = secaoAurea(x, rho, d, EPSILON);
 			break;
 		case ARMIJO:
-			t = armijo(x, startRho, d, 0.8, 0.25);
+			t = armijo(x, rho, d, 0.8, 0.25);
 			break;
 		default:
 			break;
 		}
-		
+
+		if (phi(somaVectors(x, multiplicaEscalar(d, t)), rho) >= phi(x, rho)) {
+			string err = "Invalide step size. The current function image is not smaller than the previous.";
+			throw std::invalid_argument(err);
+		}
+
 		x = somaVectors(x, multiplicaEscalar(d, t));
-		//rho = 3 * rho;
 
 		grad = GetGradienteEmX(x, rho);
+		k++;
 	}
 
-	double i = penalidade(x);
-	cout << "Descida por gradiente finalizada com penalidade " << i << endl;
-	if (i > 0) cout << "Não foi possível encontrar ponto viável." << endl;
-	else {
-		cout << "Ponto ótimo encontrado: [ "
+	cout << "Gradiente convergiu com " << k << " iterações." << endl;
+
+	cout << "Ponto mínimo encontrado: [ "
+		<< x[0] << ", "
+		<< x[1] << ", "
+		<< x[2] << ", "
+		<< x[3] << "]" << endl;
+	cout << "Gradiente: [ "
+		<< grad[0] << ", "
+		<< grad[1] << ", "
+		<< grad[2] << ", "
+		<< grad[3] << "]" << endl << "Valor de f no ponto: " << phi(x, rho) << endl;
+
+	return x;
+}
+
+vector<double> PenalidadeExterior(vector<double> x0, double startRho, MODE mode) {
+	vector<double> x = x0;
+	double rho = startRho;
+	vector<double> grad = GetGradienteEmX(x, rho);
+
+	int iteracao = 0;
+	// Critérios de parada:
+	// O ponto gerado pela função deve ser viável, ou seja, penalidade = 0
+	// Tamanho do passo é menor que epsilon
+	// Mais do que 100 iterações
+	double p = -1;
+	while (p != 0 && iteracao < 100) {
+		x = DescidaGradiente(x, rho, mode);
+		p = penalidade(x);
+		cout << "Descida por gradiente finalizada com penalidade " << p << endl;
+		if (p > 0) cout << "Não foi possível encontrar ponto viável." << endl;
+		else {
+			cout << "Ponto ótimo encontrado: [ "
 			<< x[0] << ", "
 			<< x[1] << ", "
 			<< x[2] << ", "
 			<< x[3] << "]" << endl;
-		cout << "Gradiente: [ "
+			cout << "Gradiente: [ "
 			<< grad[0] << ", "
 			<< grad[1] << ", "
 			<< grad[2] << ", "
 			<< grad[3] << "]" << endl << "Valor de f no ponto: " << phi(x, rho) << endl;
+		}
+		rho = 3 * rho; //3 é possível beta > 0 da penalidade exterior
+		iteracao++;
 	}
 
 	return x;
 }
 
+
 int main(int argc, char* args[]) {
 	setlocale(LC_ALL, "");
+
 
 	vector<double> debug = { 1.0, 5.0, 4.0, 1.0 };
 	vector<double> debug2 = { 0.0, 0.0, 1.0, 1.0 };
