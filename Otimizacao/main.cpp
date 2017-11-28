@@ -305,38 +305,44 @@ vector<double> DescidaGradiente(vector<double> x0, double rho, MODE mode) {
 }
 
 vector<double> PenalidadeExterior(vector<double> x0, double startRho, MODE mode) {
-	vector<double> x = x0;
+	vector<double> x1 = { 0,0,0,0 };
+	vector<double> x2 = { 0,0,0,0 };
+	x1 = x0;
 	double rho = startRho;
-	vector<double> grad = GetGradienteEmX(x, rho);
 
 	int iteracao = 0;
 	// Critérios de parada:
 	// O ponto gerado pela função deve ser viável, ou seja, penalidade = 0
-	// Tamanho do passo é menor que epsilon
+	// Tamanho da variação em x é menor que epsilon
 	// Mais do que 100 iterações
 	double p = -1;
-	while (p != 0 && iteracao < 100) {
-		x = DescidaGradiente(x, rho, mode);
-		p = penalidade(x);
+	double deltax = 0;
+	while (!(p == 0 && deltax <= EPSILON) && iteracao < 100) {
+		x2 = DescidaGradiente(x0, rho, mode);
+		p = penalidade(x2);
+		vector<double> grad = GetGradienteEmX(x2, rho);
 		cout << "Descida por gradiente finalizada com penalidade " << p << endl;
 		if (p > 0) cout << "Não foi possível encontrar ponto viável." << endl;
 		else {
 			cout << "Ponto ótimo encontrado: [ "
-			<< x[0] << ", "
-			<< x[1] << ", "
-			<< x[2] << ", "
-			<< x[3] << "]" << endl;
+			<< x2[0] << ", "
+			<< x2[1] << ", "
+			<< x2[2] << ", "
+			<< x2[3] << "]" << endl;
 			cout << "Gradiente: [ "
 			<< grad[0] << ", "
 			<< grad[1] << ", "
 			<< grad[2] << ", "
-			<< grad[3] << "]" << endl << "Valor de f no ponto: " << phi(x, rho) << endl;
+			<< grad[3] << "]" << endl << "Valor de f no ponto: " << phi(x2, rho) << endl;
 		}
 		rho = 3 * rho; //3 é possível beta > 0 da penalidade exterior
+		deltax = normaVector(somaVectors(x2, multiplicaEscalar(x1, -1)));
+		cout << deltax << endl;
+		x1 = x2;
 		iteracao++;
 	}
 
-	return x;
+	return x2;
 }
 
 
